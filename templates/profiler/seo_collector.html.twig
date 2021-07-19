@@ -87,8 +87,23 @@
             list-style:  none;
         }
 
-        .headings-tree:first-child {
+        .headings-tree:first-of-type {
             padding:  0;
+        }
+
+        .headings-tree__item {}
+
+        .headings-tree__item--error svg {
+            width: 13px;
+            height: 13px;
+        }
+
+        .headings-tree__item--error svg path {
+            fill: var(--color-error);
+        }
+
+        .headings-tree__item--error strong {
+            color: var(--color-error);
         }
     </style>
 {% endblock %}
@@ -146,31 +161,35 @@
             <tr>
                 <th class="font-normal text-muted">Headings</th>
                 <td class="font-normal">
+                    <div class="card status-error">
+                        <strong>Error : missing h1</strong>
+                    </div>
+                    <div class="card status-error">
+                        <strong>Error : several h1 found, there should be only one per page</strong>
+                    </div>
+                    <div class="card status-error">
+                        <strong>Error : at least 1 title is skipping a heading level</strong>
+                    </div>
+
                     {% set headings = collector.headlinesTree %}
                     {% set level = 1 %}
+                    {% set headingErrors = 0 %}
                     {% block treeHeading %}
                         <ul class="headings-tree">
                             {% for heading in headings %}
-                                {# Todo : ne pas se reposer uniquement sur la couleur pour alerter
-                                    - si les titres respectent l'ordre
-                                    <li>
+                                {% if level == heading.level %}
+                                    <li class="headings-tree__item headings-tree__item--error">
                                         <strong>h{{ heading.level }}:</strong> {{ heading.content }}
                                     </li>
-
-                                    - si les titres ne respectent pas l'ordre
-                                    <li>
+                                {% else %}
+                                    <li class="headings-tree__item headings-tree__item--error">
                                         {{ include('@ElaoAccesseo/profiler/danger.svg') }}
                                         <span>
-                                            <strong>h{{ heading.level }}:</strong> {{ heading.content }}
+                                            <strong>h{{ heading.level }} :</strong> {{ heading.content }}
                                         </span>
                                     </li>
-                                #}
-
-                                <li>
-                                    <span class="{{ level != heading.level ? 'text-warning' }}">
-                                        <strong>h{{ heading.level }}:</strong> {{ heading.content }}
-                                    </span>
-                                </li>
+                                    {% set headingErrors = headingErrors+1 %}
+                                {% endif %}
                                 {% set headings = heading.children %}
                                 {% set level = level+1 %}
                                 {{ block ("treeHeading") }}
@@ -182,13 +201,12 @@
             </tbody>
         </tr>
     </table>
-
-    {#
-        Todo : afficher si l'un des titres ne respecte pas l'ordre
+    {% if headingErrors > 0 %}
         <div class="card status-error">
-            <strong>Error : au moins 1 titre ne respecte pas la structure.</strong>
+            <strong>Error : {{ headingErrors }} headings are not in the correct order.</strong>
         </div>
-     #}
+    {% endif %}
+
 
     <h3>Robots directives</h3>
     {# Todo : if missing meta, show alert (mandatory meta) or warning (recommended meta)
